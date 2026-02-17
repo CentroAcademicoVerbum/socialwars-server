@@ -242,19 +242,8 @@
   // ============================================================
   // CONFIGURAÇÃO DO FIREBASE (injetada pelo servidor)
   // ============================================================
-  let firebaseConfig = {{ firebase_config | tojson }};
+  const firebaseConfig = {{ firebase_config | tojson }};
 
-  // Se vier como string JSON, transforma em objeto
-  if (typeof firebaseConfig === "string") {
-    try {
-      firebaseConfig = JSON.parse(firebaseConfig);
-    } catch (e) {
-      console.error("firebase_config veio como string inválida:", firebaseConfig);
-      firebaseConfig = null;
-    }
-  }
-
-  // Inicializa Firebase com segurança
   let auth = null;
 
   try {
@@ -270,12 +259,14 @@
     console.log("[Firebase] Inicializado OK");
   } catch (err) {
     console.error("[Firebase] Falha ao inicializar:", err);
+
     const msg = document.getElementById("message");
     if (msg) {
       msg.textContent = "Firebase não iniciou (config inválida). Verifique as ENV do Render.";
       msg.className = "message error";
     }
   }
+
 
   // ============================================================
   // FUNÇÕES DE UI

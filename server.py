@@ -125,7 +125,8 @@ def login():
             return render_template(
     "login_firebase.html",
     version=version_name,
-    firebase_config=get_web_config_dict(),  # ✅ manda dict pro template
+    firebase_config=get_web_config(),
+  # ✅ manda dict pro template
     firebase_enabled=True
 )
     else:
