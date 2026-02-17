@@ -1,100 +1,118 @@
-"""
-Firebase Configuration for Social Warriors Server
-===================================================
-
-INSTRUÇÕES DE CONFIGURAÇÃO:
-
-1. Acesse https://console.firebase.google.com
-2. Crie um novo projeto (ou use um existente)
-3. Ative "Authentication" > "Email/Password" no console
-4. Ative "Firestore Database" no console (modo de teste para começar)
-5. Vá em "Configurações do Projeto" > "Contas de serviço"
-6. Clique em "Gerar nova chave privada" e baixe o arquivo JSON
-7. Coloque o arquivo JSON na pasta do projeto e renomeie para "firebase-credentials.json"
-   OU cole o caminho completo na variável FIREBASE_CREDENTIALS_PATH abaixo
-
-8. Vá em "Configurações do Projeto" > "Geral" e copie as configurações do Firebase Web App:
-   - apiKey, authDomain, projectId, etc.
-   - Cole na variável FIREBASE_WEB_CONFIG abaixo
-"""
-
 import os
 import json
 import firebase_admin
 from firebase_admin import credentials, firestore, auth
 
 # ============================================================
-# CONFIGURAÇÃO - EDITE AQUI
+# CONFIGURAÇÃO
 # ============================================================
 
-# Caminho para o arquivo de credenciais do Firebase (Service Account JSON)
+# 1) Preferência: credenciais vindo do Render (ENV) como JSON inteiro
+FIREBASE_CREDENTIALS_JSON = os.environ.get("FIREBASE_CREDENTIALS_JSON", "").strip()
+
+# 2) Fallback: caminho do arquivo local (dev)
 FIREBASE_CREDENTIALS_PATH = os.environ.get(
-    'FIREBASE_CREDENTIALS_PATH',
-    os.path.join(os.path.dirname(os.path.abspath(__file__)), 'firebase-credentials.json')
+    "FIREBASE_CREDENTIALS_PATH",
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "firebase-credentials.json")
 )
 
-# Configuração do Firebase Web SDK (para o frontend)
-# Pegue essas informações no Console do Firebase > Configurações do Projeto > Geral > Seus apps
+# Configuração do Firebase Web SDK (frontend)
 FIREBASE_WEB_CONFIG = {
-    "apiKey": os.environ.get("FIREBASE_API_KEY", "AIzaSyDEZz66ObrzLT4RSD4JWfJzYmC3tMrAmVY"),
-    "authDomain": os.environ.get("FIREBASE_AUTH_DOMAIN", "socialwarsfan.firebaseapp.com"),
-    "projectId": os.environ.get("FIREBASE_PROJECT_ID", "socialwarsfan"),
-    "storageBucket": os.environ.get("FIREBASE_STORAGE_BUCKET", "socialwarsfan.firebasestorage.app"),
-    "messagingSenderId": os.environ.get("FIREBASE_MESSAGING_SENDER_ID", "909624694777"),
-    "appId": os.environ.get("FIREBASE_APP_ID", "1:909624694777:web:b755968f0757320a250f28"),
-    "measurementId": os.environ.get("FIREBASE_MEASUREMENT_ID", "G-SP3TLM6K55"),
+    "apiKey": os.environ.get("FIREBASE_API_KEY", ""),
+    "authDomain": os.environ.get("FIREBASE_AUTH_DOMAIN", ""),
+    "projectId": os.environ.get("FIREBASE_PROJECT_ID", ""),
+    "storageBucket": os.environ.get("FIREBASE_STORAGE_BUCKET", ""),
+    "messagingSenderId": os.environ.get("FIREBASE_MESSAGING_SENDER_ID", ""),
+    "appId": os.environ.get("FIREBASE_APP_ID", ""),
+    "measurementId": os.environ.get("FIREBASE_MEASUREMENT_ID", ""),
 }
-
-# ============================================================
-# INICIALIZAÇÃO DO FIREBASE ADMIN SDK
-# ============================================================
 
 _firebase_app = None
 _firestore_db = None
 _firebase_initialized = False
 
-def init_firebase():
-    """Inicializa o Firebase Admin SDK. Retorna True se bem-sucedido."""
+
+def init_firebase() -> bool:
+    """
+    Inicializa o Firebase Admin SDK.
+    Retorna True se bem-sucedido.
+    """
     global _firebase_app, _firestore_db, _firebase_initialized
 
     if _firebase_initialized:
         return True
 
     try:
-        if not os.path.exists(FIREBASE_CREDENTIALS_PATH):
-            print(f" [!] FIREBASE: Arquivo de credenciais não encontrado em: {FIREBASE_CREDENTIALS_PATH}")
-            print(f" [!] FIREBASE: O servidor vai rodar em MODO LOCAL (sem Firebase).")
-            print(f" [!] FIREBASE: Para ativar, coloque o arquivo 'firebase-credentials.json' na pasta do projeto.")
+        cred = None
+        project_id = None
+
+        # --- Preferir ENV JSON (Render) ---
+        if FIREBASE_CREDENTIALS_JSON:
+            try:
+                cred_dict = json.loads(FIREBASE_CREDENTIALS_JSON)
+            except json.JSONDecodeError as e:
+                print(f" [!] FIREBASE: FIREBASE_CREDENTIALS_JSON inválido (JSON mal formatado): {e}")
+                print(" [!] FIREBASE: Rodando em MODO LOCAL (sem Firebase).")
+                return False
+
+            project_id = cred_dict.get("project_id")
+            cred = credentials.Certificate(cred_dict)
+
+        # --- Fallback arquivo local ---
+        elif os.path.exists(FIREBASE_CREDENTIALS_PATH):
+            try:
+                with open(FIREBASE_CREDENTIALS_PATH, "r", encoding="utf-8") as f:
+                    file_dict = json.load(f)
+                project_id = file_dict.get("project_id")
+            except Exception:
+                project_id = None
+
+            cred = credentials.Certificate(FIREBASE_CREDENTIALS_PATH)
+
+        else:
+            print(" [!] FIREBASE: Credenciais não encontradas (ENV nem arquivo).")
+            print(" [!] FIREBASE: Rodando em MODO LOCAL (sem Firebase).")
             return False
 
-        cred = credentials.Certificate(FIREBASE_CREDENTIALS_PATH)
-        _firebase_app = firebase_admin.initialize_app(cred)
+        # Ajuda alguns ambientes (não é obrigatório, mas facilita)
+        if project_id and not os.environ.get("GOOGLE_CLOUD_PROJECT"):
+            os.environ["GOOGLE_CLOUD_PROJECT"] = project_id
+
+        # Evita erro de "app already exists" em alguns cenários
+        if not firebase_admin._apps:
+            _firebase_app = firebase_admin.initialize_app(cred)
+        else:
+            _firebase_app = firebase_admin.get_app()
+
         _firestore_db = firestore.client()
         _firebase_initialized = True
+
         print(" [+] FIREBASE: Inicializado com sucesso!")
+        if project_id:
+            print(f" [+] FIREBASE: project_id = {project_id}")
         return True
 
     except Exception as e:
         print(f" [!] FIREBASE: Erro ao inicializar: {e}")
-        print(f" [!] FIREBASE: O servidor vai rodar em MODO LOCAL (sem Firebase).")
+        print(" [!] FIREBASE: Rodando em MODO LOCAL (sem Firebase).")
         return False
 
+
 def get_firestore_db():
-    """Retorna a instância do Firestore Database."""
     return _firestore_db
 
+
 def get_firebase_auth():
-    """Retorna o módulo de autenticação do Firebase."""
     return auth
 
-def is_firebase_enabled():
-    """Verifica se o Firebase está ativo."""
+
+def is_firebase_enabled() -> bool:
     return _firebase_initialized
 
-def get_web_config():
-    """Retorna a configuração do Firebase Web SDK como JSON string."""
+
+def get_web_config() -> str:
     return json.dumps(FIREBASE_WEB_CONFIG)
 
-def get_web_config_dict():
-    """Retorna a configuração do Firebase Web SDK como dicionário."""
+
+def get_web_config_dict() -> dict:
     return FIREBASE_WEB_CONFIG

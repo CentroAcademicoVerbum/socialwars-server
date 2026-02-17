@@ -78,7 +78,10 @@ host = '0.0.0.0'
 port = 5055
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-insecure-change-me")
+import os
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-only")
+
+
 
 print(" [+] Configuring server routes...")
 
