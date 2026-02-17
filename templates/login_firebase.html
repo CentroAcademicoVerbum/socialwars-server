@@ -235,240 +235,206 @@
             🔥 Autenticação e dados salvos na nuvem via Firebase
         </div>
     </div>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 
-    <!-- FIREBASE SDK (via CDN) -->
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+   <script>
+  // ============================================================
+  // CONFIGURAÇÃO DO FIREBASE (injetada pelo servidor)
+  // ============================================================
+  let firebaseConfig = {{ firebase_config | tojson }};
 
-    <script>
-        // ============================================================
-        // CONFIGURAÇÃO DO FIREBASE (injetada pelo servidor)
-        // ============================================================
-        const firebaseConfig = {{ firebase_config | safe }};
+  // Se vier como string JSON, transforma em objeto
+  if (typeof firebaseConfig === "string") {
+    try {
+      firebaseConfig = JSON.parse(firebaseConfig);
+    } catch (e) {
+      console.error("firebase_config veio como string inválida:", firebaseConfig);
+      firebaseConfig = null;
+    }
+  }
 
-        // Inicializar Firebase
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
+  // Inicializa Firebase com segurança
+  let auth = null;
 
-        // ============================================================
-        // FUNÇÕES DE UI
-        // ============================================================
-        function showTab(tab) {
-            document.getElementById('tab-login').classList.remove('active');
-            document.getElementById('tab-register').classList.remove('active');
-            document.getElementById('btn-tab-login').classList.remove('active');
-            document.getElementById('btn-tab-register').classList.remove('active');
+  try {
+    if (!firebaseConfig || !firebaseConfig.apiKey) {
+      throw new Error("Config do Firebase ausente ou sem apiKey.");
+    }
 
-            document.getElementById('tab-' + tab).classList.add('active');
-            document.getElementById('btn-tab-' + tab).classList.add('active');
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
 
-            hideMessage();
-        }
+    auth = firebase.auth();
+    console.log("[Firebase] Inicializado OK");
+  } catch (err) {
+    console.error("[Firebase] Falha ao inicializar:", err);
+    const msg = document.getElementById("message");
+    if (msg) {
+      msg.textContent = "Firebase não iniciou (config inválida). Verifique as ENV do Render.";
+      msg.className = "message error";
+    }
+  }
 
-        function showMessage(text, type) {
-            const msg = document.getElementById('message');
-            msg.textContent = text;
-            msg.className = 'message ' + type;
-        }
+  // ============================================================
+  // FUNÇÕES DE UI
+  // ============================================================
+  function showTab(tab) {
+    document.getElementById("tab-login").classList.remove("active");
+    document.getElementById("tab-register").classList.remove("active");
+    document.getElementById("btn-tab-login").classList.remove("active");
+    document.getElementById("btn-tab-register").classList.remove("active");
 
-        function hideMessage() {
-            const msg = document.getElementById('message');
-            msg.className = 'message';
-            msg.textContent = '';
-        }
+    document.getElementById("tab-" + tab).classList.add("active");
+    document.getElementById("btn-tab-" + tab).classList.add("active");
 
-        function showSpinner() {
-            document.getElementById('spinner').style.display = 'block';
-        }
+    hideMessage();
+  }
 
-        function hideSpinner() {
-            document.getElementById('spinner').style.display = 'none';
-        }
+  function showMessage(text, type) {
+    const msg = document.getElementById("message");
+    msg.textContent = text;
+    msg.className = "message " + type;
+  }
 
-        function setButtonsDisabled(disabled) {
-            document.getElementById('btn-login').disabled = disabled;
-            document.getElementById('btn-register').disabled = disabled;
-        }
+  function hideMessage() {
+    const msg = document.getElementById("message");
+    msg.className = "message";
+    msg.textContent = "";
+  }
 
-        // ============================================================
-        // LOGIN
-        // ============================================================
-        async function handleLogin(event) {
-            event.preventDefault();
-            hideMessage();
-            showSpinner();
-            setButtonsDisabled(true);
+  function showSpinner() {
+    document.getElementById("spinner").style.display = "block";
+  }
 
-            const email = document.getElementById('login-email').value.trim();
-            const password = document.getElementById('login-password').value;
-            const gameVersion = document.getElementById('login-gameversion').value;
+  function hideSpinner() {
+    document.getElementById("spinner").style.display = "none";
+  }
 
-            try {
-                // 1. Autenticar com Firebase Auth (client-side)
-                const userCredential = await auth.signInWithEmailAndPassword(email, password);
-                const user = userCredential.user;
+  function setButtonsDisabled(disabled) {
+    document.getElementById("btn-login").disabled = disabled;
+    document.getElementById("btn-register").disabled = disabled;
+  }
 
-                // 2. Obter o ID Token
-                const idToken = await user.getIdToken();
+  // ============================================================
+  // LOGIN
+  // ============================================================
+  async function handleLogin(event) {
+    event.preventDefault();
 
-                // 3. Enviar token para o servidor para verificação e criar sessão
-                const response = await fetch('/api/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        id_token: idToken,
-                        game_version: gameVersion
-                    })
-                });
+    if (!auth) {
+      showMessage("Firebase não iniciou. Confira as ENV do Render (API Key etc).", "error");
+      return;
+    }
 
-                const data = await response.json();
+    hideMessage();
+    showSpinner();
+    setButtonsDisabled(true);
 
-                if (data.success) {
-                    showMessage('Login bem-sucedido! Redirecionando...', 'success');
-                    setTimeout(() => {
-                        window.location.href = data.redirect;
-                    }, 500);
-                } else {
-                    showMessage(data.error || 'Erro ao fazer login.', 'error');
-                    hideSpinner();
-                    setButtonsDisabled(false);
-                }
+    const email = document.getElementById("login-email").value.trim();
+    const password = document.getElementById("login-password").value;
+    const gameVersion = document.getElementById("login-gameversion").value;
 
-            } catch (error) {
-                console.error('Login error:', error);
-                let errorMsg = 'Erro ao fazer login.';
+    try {
+      const userCredential = await auth.signInWithEmailAndPassword(email, password);
+      const user = userCredential.user;
+      const idToken = await user.getIdToken();
 
-                switch (error.code) {
-                    case 'auth/user-not-found':
-                        errorMsg = 'Usuário não encontrado. Crie uma conta primeiro.';
-                        break;
-                    case 'auth/wrong-password':
-                        errorMsg = 'Senha incorreta.';
-                        break;
-                    case 'auth/invalid-email':
-                        errorMsg = 'Email inválido.';
-                        break;
-                    case 'auth/too-many-requests':
-                        errorMsg = 'Muitas tentativas. Tente novamente mais tarde.';
-                        break;
-                    case 'auth/invalid-credential':
-                        errorMsg = 'Email ou senha incorretos.';
-                        break;
-                    case 'auth/network-request-failed':
-                        errorMsg = 'Erro de conexão. Verifique sua internet.';
-                        break;
-                    default:
-                        errorMsg = error.message || 'Erro desconhecido.';
-                }
+      const response = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id_token: idToken, game_version: gameVersion })
+      });
 
-                showMessage(errorMsg, 'error');
-                hideSpinner();
-                setButtonsDisabled(false);
-            }
-        }
+      const data = await response.json();
 
-        // ============================================================
-        // REGISTRO
-        // ============================================================
-        async function handleRegister(event) {
-            event.preventDefault();
-            hideMessage();
+      if (data.success) {
+        showMessage("Login bem-sucedido! Redirecionando...", "success");
+        setTimeout(() => (window.location.href = data.redirect), 500);
+      } else {
+        showMessage(data.error || "Erro ao fazer login.", "error");
+        hideSpinner();
+        setButtonsDisabled(false);
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      showMessage(error.message || "Erro ao fazer login.", "error");
+      hideSpinner();
+      setButtonsDisabled(false);
+    }
+  }
 
-            const name = document.getElementById('reg-name').value.trim();
-            const email = document.getElementById('reg-email').value.trim();
-            const password = document.getElementById('reg-password').value;
-            const password2 = document.getElementById('reg-password2').value;
+  // ============================================================
+  // REGISTRO
+  // ============================================================
+  async function handleRegister(event) {
+    event.preventDefault();
 
-            // Validações
-            if (!name) {
-                showMessage('Digite o nome do seu império.', 'error');
-                return;
-            }
-            if (password !== password2) {
-                showMessage('As senhas não coincidem.', 'error');
-                return;
-            }
-            if (password.length < 6) {
-                showMessage('A senha deve ter pelo menos 6 caracteres.', 'error');
-                return;
-            }
+    if (!auth) {
+      showMessage("Firebase não iniciou. Confira as ENV do Render (API Key etc).", "error");
+      return;
+    }
 
-            showSpinner();
-            setButtonsDisabled(true);
+    hideMessage();
 
-            try {
-                // 1. Registrar no servidor (que cria no Firebase Auth + Firestore)
-                const regResponse = await fetch('/api/register', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        email: email,
-                        password: password,
-                        display_name: name
-                    })
-                });
+    const name = document.getElementById("reg-name").value.trim();
+    const email = document.getElementById("reg-email").value.trim();
+    const password = document.getElementById("reg-password").value;
+    const password2 = document.getElementById("reg-password2").value;
 
-                const regData = await regResponse.json();
+    if (!name) return showMessage("Digite o nome do seu império.", "error");
+    if (password !== password2) return showMessage("As senhas não coincidem.", "error");
+    if (password.length < 6) return showMessage("A senha deve ter pelo menos 6 caracteres.", "error");
 
-                if (!regData.success) {
-                    showMessage(regData.error || 'Erro ao criar conta.', 'error');
-                    hideSpinner();
-                    setButtonsDisabled(false);
-                    return;
-                }
+    showSpinner();
+    setButtonsDisabled(true);
 
-                // 2. Fazer login automaticamente após registro
-                const userCredential = await auth.signInWithEmailAndPassword(email, password);
-                const user = userCredential.user;
-                const idToken = await user.getIdToken();
+    try {
+      const regResponse = await fetch("/api/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password, display_name: name })
+      });
 
-                // 3. Criar sessão no servidor
-                const loginResponse = await fetch('/api/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        id_token: idToken,
-                        game_version: 'Basesec_1.5.4.swf'
-                    })
-                });
+      const regData = await regResponse.json();
 
-                const loginData = await loginResponse.json();
+      if (!regData.success) {
+        showMessage(regData.error || "Erro ao criar conta.", "error");
+        hideSpinner();
+        setButtonsDisabled(false);
+        return;
+      }
 
-                if (loginData.success) {
-                    showMessage('Conta criada com sucesso! Entrando no jogo...', 'success');
-                    setTimeout(() => {
-                        window.location.href = loginData.redirect;
-                    }, 1000);
-                } else {
-                    showMessage('Conta criada! Faça login para jogar.', 'success');
-                    hideSpinner();
-                    setButtonsDisabled(false);
-                    setTimeout(() => showTab('login'), 2000);
-                }
+      const userCredential = await auth.signInWithEmailAndPassword(email, password);
+      const user = userCredential.user;
+      const idToken = await user.getIdToken();
 
-            } catch (error) {
-                console.error('Register error:', error);
-                let errorMsg = 'Erro ao criar conta.';
+      const loginResponse = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id_token: idToken, game_version: "Basesec_1.5.4.swf" })
+      });
 
-                switch (error.code) {
-                    case 'auth/email-already-in-use':
-                        errorMsg = 'Este email já está cadastrado.';
-                        break;
-                    case 'auth/invalid-email':
-                        errorMsg = 'Email inválido.';
-                        break;
-                    case 'auth/weak-password':
-                        errorMsg = 'Senha muito fraca. Use pelo menos 6 caracteres.';
-                        break;
-                    default:
-                        errorMsg = error.message || 'Erro desconhecido.';
-                }
+      const loginData = await loginResponse.json();
 
-                showMessage(errorMsg, 'error');
-                hideSpinner();
-                setButtonsDisabled(false);
-            }
-        }
-    </script>
+      if (loginData.success) {
+        showMessage("Conta criada com sucesso! Entrando no jogo...", "success");
+        setTimeout(() => (window.location.href = loginData.redirect), 1000);
+      } else {
+        showMessage("Conta criada! Faça login para jogar.", "success");
+        hideSpinner();
+        setButtonsDisabled(false);
+        setTimeout(() => showTab("login"), 1500);
+      }
+    } catch (error) {
+      console.error("Register error:", error);
+      showMessage(error.message || "Erro ao criar conta.", "error");
+      hideSpinner();
+      setButtonsDisabled(false);
+    }
+  }
+</script>
+
 </body>
 </html>
