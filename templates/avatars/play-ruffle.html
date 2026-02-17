@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <!-- Meta -->
+        <meta charset="utf-8"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+        <!-- Title and Icon -->
+        <title>Social Wars — Ruffle</title>
+        <link rel="shortcut icon" href="img/icon.png"/>
+        <link rel="icon" type="image/gif" href="img/icon.png"/>
+        <style>
+            * { box-sizing: border-box; margin: 0; padding: 0; }
+            body {
+                font-family: 'lucida grande', tahoma, verdana, arial, sans-serif;
+                background: #2c2c2c;
+                color: #eee;
+            }
+            #page-wrapper {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                min-height: 100vh;
+            }
+            /* SESSION HEADER */
+            #header {
+                width: 100%;
+                max-width: 760px;
+                margin-top: 20px;
+                padding: 0 10px;
+            }
+            #session {
+                text-align: right;
+            }
+            #session a { color: #adf; }
+            /* GAME BAR */
+            #gameBar {
+                text-align: left;
+                width: 100%;
+                max-width: 760px;
+                margin-top: 15px;
+                padding: 0 10px;
+            }
+            #gamebar_buttons {
+                background-color: rgb(97, 104, 7);
+                border: solid rgb(65, 70, 3) 3px;
+                border-bottom: solid rgb(65, 70, 3) 4px;
+                border-top-left-radius: 6px;
+                border-top-right-radius: 6px;
+            }
+            .gameBarButton {
+                display: inline-block;
+                height: 19px;
+                color: black;
+                border: solid 1.5px;
+                border-color: rgb(80, 79, 29);
+                background-color: rgb(249, 250, 202);
+                border-top-left-radius: 5px;
+                border-top-right-radius: 5px;
+                cursor: pointer;
+                text-decoration: none;
+                font-size: 11pt;
+                padding: 2px 3px 1px 3px;
+            }
+            .gameBarButtonSelected {
+                background-color: rgb(233, 221, 81);
+            }
+            .gameBarButton img {
+                height: 17px;
+                padding-right: 3px;
+                vertical-align: middle;
+            }
+            .gameBarButton:hover {
+                background-color: rgb(250, 237, 90);
+                text-decoration: none;
+            }
+            .gameBarButtonSelected:hover {
+                background-color: rgb(223, 212, 82);
+            }
+            /* GAME CONTAINER */
+            #game-container {
+                width: 100%;
+                max-width: 760px;
+                padding: 0 10px;
+            }
+            #ruffle-player {
+                width: 100%;
+                aspect-ratio: 760 / 600;
+                background: #669C2C;
+                border: 2px solid rgb(65, 70, 3);
+            }
+            /* FALLBACK */
+            #ruffle-fallback {
+                display: none;
+                width: 100%;
+                aspect-ratio: 760 / 600;
+                background: #333;
+                border: 2px solid #c00;
+                color: #faa;
+                font-size: 16px;
+                text-align: center;
+                padding: 40px 20px;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                position: absolute;
+                top: 0; left: 0;
+                z-index: 10;
+            }
+            #game-container {
+                position: relative;
+            }
+            #ruffle-fallback h2 { color: #f66; margin-bottom: 12px; }
+            #ruffle-fallback p { margin-bottom: 8px; }
+            #ruffle-fallback a { color: #adf; }
+            /* CONTROLS */
+            #controls {
+                width: 100%;
+                max-width: 760px;
+                text-align: center;
+                padding: 8px 10px;
+            }
+            #controls a {
+                text-decoration: none;
+                color: #aaa;
+                cursor: pointer;
+                margin: 0 10px;
+            }
+            #controls a:hover { color: #fff; }
+            /* STATUS */
+            #status-bar {
+                width: 100%;
+                max-width: 760px;
+                text-align: center;
+                padding: 4px;
+                font-size: 12px;
+                color: #888;
+            }
+            /* RESPONSIVE: mobile */
+            @media (max-width: 780px) {
+                #header, #gameBar, #game-container, #controls, #status-bar {
+                    max-width: 100%;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div id="page-wrapper">
+            <!-- SESSION HEADER -->
+            <div id="header">
+                <div id="session">
+                    <p>Welcome <b>{{save_info.name}}</b>! Level {{save_info.level}} (<a href="/">Log Out</a>)</p>
+                </div>
+            </div>
+            <!-- GAME BAR -->
+            <div id="gameBar">
+                <div id="gamebar_buttons">
+                    <a class="gameBarButton" href="#"><div><img src="img/gift.png">Free Gifts</div></a>
+                    <a class="gameBarButton gameBarButtonSelected" href="#"><div><img>Play</div></a>
+                    <a class="gameBarButton" href="#"><div><img src="img/cash.png">Get Cash</div></a>
+                    <a class="gameBarButton" href="https://discord.gg/zW5gSbQJBw" target="_blank"><div><img src="img/discord.png">Discord</div></a>
+                    <a class="gameBarButton" href="https://github.com/AcidCaos/socialwarriors#readme" target="_blank"><div><img src="img/github.png">GitHub</div></a>
+                </div>
+            </div>
+            <!-- GAME AREA -->
+            <div id="game-container">
+                <div id="ruffle-player"></div>
+                <div id="ruffle-fallback">
+                    <h2>Ruffle failed to load</h2>
+                    <p>The Flash emulator (Ruffle) could not start. This may happen if:</p>
+                    <p>- Your browser does not support WebAssembly.</p>
+                    <p>- The Ruffle files (ruffle.js / .wasm) failed to download.</p>
+                    <p>- The SWF uses ActionScript 3 features not yet supported by Ruffle.</p>
+                    <br/>
+                    <p>Check the browser Console (F12) for details.</p>
+                    <p>Visit <a href="https://ruffle.rs/" target="_blank">ruffle.rs</a> for more info.</p>
+                </div>
+            </div>
+            <!-- CONTROLS -->
+            <div id="controls">
+                <a id="btn-expand" onclick="toggleExpand()">Expand</a>
+                <a id="btn-fullscreen" onclick="goFullscreen()">Fullscreen</a>
+            </div>
+            <!-- STATUS -->
+            <div id="status-bar">Initializing Ruffle...</div>
+        </div>
+
+        <!--
+            Ruffle self-hosted: loaded AFTER the DOM so that window.RufflePlayer
+            is guaranteed to exist when the onload handler fires.
+        -->
+        <script>
+            // ---- Configuration (injected by Jinja2) ----
+            const SERVER_ORIGIN = window.location.protocol + "//" + window.location.host;
+            const SWF_LOADER    = "/static/socialwars/flash/SWLoader.swf";
+            const SWF_GAME      = "/static/socialwars/flash/{{GAMEVERSION}}";
+            const STATIC_URL    = SERVER_ORIGIN + "/static/socialwars/";
+            const DYNAMIC_URL   = SERVER_ORIGIN + "/dynamic/menvswomen/srvsexwars/";
+
+            const FLASH_VARS = {
+                "spdebug":             "notnull",
+                "brk":                 "0",
+                "staticUrl":           STATIC_URL,
+                "dynamicUrl":          DYNAMIC_URL,
+                "skiphash12341":       "notnull",
+                "fb_sig_user":         "{{save_info.userid}}",
+                "user_key":            "123456789",
+                "language":            "en",
+                "accessToken":         "AAABbZAm0wdMUBALsOrR0Ho68CLjaOT8SV3vftKg9mbo1zZColaW5FljRVaLxPGxXXnm1M98mTZCAttcQ4GHwvSyXfsyxYmvKMH8Hmn5iliSPnjvIsZA6",
+                "sex":                 "m",
+                "lastLoggedIn":        "1349266517",
+                "dailyBonus":          "0",
+                "friendsInfo":         '{{friendsInfo | tojson}}',
+                "serverTime":          "{{serverTime}}",
+                "forceSyncError":      "1",
+                "forceAttackReload":   "0",
+                "forceQuestReload":    "0"
+            };
+
+            const FULL_SWF_URL = SWF_LOADER + "?swftoload=" + encodeURIComponent(SWF_GAME);
+
+            // ---- DOM refs ----
+            const statusBar = document.getElementById("status-bar");
+            const container = document.getElementById("ruffle-player");
+            const fallback  = document.getElementById("ruffle-fallback");
+
+            // ---- Ruffle bootstrap ----
+            function showFallback(msg) {
+                container.style.display = "none";
+                fallback.style.display  = "flex";
+                statusBar.textContent   = msg;
+                console.error("[SW-Ruffle]", msg);
+            }
+
+            async function startRuffle() {
+                try {
+                    statusBar.textContent = "Loading Ruffle engine...";
+                    const ruffle = window.RufflePlayer.newest();
+                    const player = ruffle.createPlayer();
+                    player.style.width  = "100%";
+                    player.style.height = "100%";
+                    container.appendChild(player);
+
+                    statusBar.textContent = "Loading SWF (this may take a moment)...";
+
+                    await player.load({
+                        url:                      FULL_SWF_URL,
+                        parameters:               FLASH_VARS,
+                        autoplay:                 "on",
+                        unmuteOverlay:            "hidden",
+                        backgroundColor:          "#669C2C",
+                        letterbox:                "on",
+                        warnOnUnsupportedContent: true,
+                        logLevel:                 "warn",
+                        maxExecutionDuration:     { secs: 60, nanos: 0 },
+                        playerVersion:            32,
+                        quality:                  "high",
+                        allowNetworking:          "all",
+                        openUrlMode:              "allow",
+                        allowScriptAccess:        true
+                    });
+
+                    statusBar.textContent = "Game loaded! (Ruffle Flash Emulator)";
+                    console.log("[SW-Ruffle] SWF loaded successfully.");
+                } catch (e) {
+                    showFallback("Ruffle error: " + e.message);
+                }
+            }
+
+            // ---- Controls ----
+            let expanded = false;
+            function toggleExpand() {
+                const gc  = document.getElementById("game-container");
+                const btn = document.getElementById("btn-expand");
+                expanded  = !expanded;
+                gc.style.maxWidth = expanded ? "100%" : "760px";
+                btn.textContent   = expanded ? "Contract" : "Expand";
+            }
+            function goFullscreen() {
+                const el = document.getElementById("ruffle-player");
+                if (el.requestFullscreen)        el.requestFullscreen();
+                else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+                else if (el.msRequestFullscreen)     el.msRequestFullscreen();
+            }
+
+            // ---- Cookie helpers ----
+            function setCookie(n,v,d){var e=new Date();e.setDate(e.getDate()+d);document.cookie=n+"="+escape(v)+";expires="+e.toUTCString();}
+            function getCookie(n){var c=document.cookie.split(";");for(var i=0;i<c.length;i++){var p=c[i].split("=");if(p[0].trim()===n)return unescape(p[1]);}return null;}
+        </script>
+
+        <!-- Load Ruffle AFTER our init script so that the onload callback works -->
+        <script src="/ruffle/ruffle.js" onload="startRuffle()" onerror="showFallback('Failed to load /ruffle/ruffle.js — check that the Ruffle files are served correctly.')"></script>
+    </body>
+</html>
