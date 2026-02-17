@@ -77,7 +77,8 @@ from constants import Quests
 host = '0.0.0.0'
 port = 5055
 
-app = Flask(__name__, template_folder=TEMPLATES_DIR)
+app = Flask(__name__)
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-insecure-change-me")
 
 print(" [+] Configuring server routes...")
 
