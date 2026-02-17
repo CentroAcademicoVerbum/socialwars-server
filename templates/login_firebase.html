@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Social Wars - Login</title>
+    <link rel="shortcut icon" href="img/icon.png"/>
+    <link rel="icon" type="image/gif" href="img/icon.png"/>
+    <link rel="stylesheet" href="css/facebook.css"/>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'lucida grande', tahoma, verdana, arial, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .login-container {
+            background: #16213e;
+            border-radius: 12px;
+            padding: 40px;
+            width: 100%;
+            max-width: 420px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+            text-align: center;
+        }
+        .login-container img.logo {
+            width: 180px;
+            margin-bottom: 10px;
+        }
+        .login-container .version {
+            color: #888;
+            font-size: 12px;
+            margin-bottom: 25px;
+        }
+        .tab-buttons {
+            display: flex;
+            margin-bottom: 25px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid #0f3460;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            background: #0f3460;
+            color: #aaa;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .tab-btn.active {
+            background: #e94560;
+            color: white;
+        }
+        .tab-btn:hover:not(.active) {
+            background: #1a4080;
+            color: #ddd;
+        }
+        .form-group {
+            margin-bottom: 18px;
+            text-align: left;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 13px;
+            color: #aaa;
+            font-weight: bold;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #0f3460;
+            border-radius: 8px;
+            background: #1a1a2e;
+            color: #eee;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #e94560;
+        }
+        .form-group input::placeholder {
+            color: #555;
+        }
+        .btn-submit {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            background: #e94560;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+        .btn-submit:hover {
+            background: #c73652;
+            transform: translateY(-1px);
+        }
+        .btn-submit:disabled {
+            background: #555;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .message {
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            font-size: 13px;
+            display: none;
+        }
+        .message.error {
+            background: rgba(233, 69, 96, 0.2);
+            border: 1px solid #e94560;
+            color: #ff6b81;
+            display: block;
+        }
+        .message.success {
+            background: rgba(46, 213, 115, 0.2);
+            border: 1px solid #2ed573;
+            color: #7bed9f;
+            display: block;
+        }
+        .loading-spinner {
+            display: none;
+            width: 24px;
+            height: 24px;
+            border: 3px solid #555;
+            border-top: 3px solid #e94560;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 15px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .firebase-badge {
+            margin-top: 20px;
+            padding: 8px;
+            background: rgba(255,152,0,0.1);
+            border-radius: 6px;
+            font-size: 11px;
+            color: #ff9800;
+        }
+        .firebase-badge img {
+            height: 14px;
+            vertical-align: middle;
+            margin-right: 4px;
+        }
+        #tab-login, #tab-register {
+            display: none;
+        }
+        #tab-login.active, #tab-register.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <!-- LOGO -->
+        <img src="img/logo.png" class="logo" alt="Social Wars"/>
+        <p class="version">By the Social Warriors team ~ {{version}}</p>
+
+        <!-- TABS -->
+        <div class="tab-buttons">
+            <button class="tab-btn active" onclick="showTab('login')" id="btn-tab-login">Entrar</button>
+            <button class="tab-btn" onclick="showTab('register')" id="btn-tab-register">Criar Conta</button>
+        </div>
+
+        <!-- LOGIN FORM -->
+        <div id="tab-login" class="active">
+            <form id="loginForm" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label for="login-email">Email</label>
+                    <input type="email" id="login-email" placeholder="seu@email.com" required autocomplete="email"/>
+                </div>
+                <div class="form-group">
+                    <label for="login-password">Senha</label>
+                    <input type="password" id="login-password" placeholder="Sua senha" required autocomplete="current-password"/>
+                </div>
+                <div class="form-group">
+                    <label for="login-gameversion">Versão do Jogo</label>
+                    <select id="login-gameversion">
+                        <option value="Basesec_1.5.4.swf">1.5.4 (Latest)</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-submit" id="btn-login">Entrar</button>
+            </form>
+        </div>
+
+        <!-- REGISTER FORM -->
+        <div id="tab-register">
+            <form id="registerForm" onsubmit="handleRegister(event)">
+                <div class="form-group">
+                    <label for="reg-name">Nome do Império</label>
+                    <input type="text" id="reg-name" placeholder="Ex: Warrior" required/>
+                </div>
+                <div class="form-group">
+                    <label for="reg-email">Email</label>
+                    <input type="email" id="reg-email" placeholder="seu@email.com" required autocomplete="email"/>
+                </div>
+                <div class="form-group">
+                    <label for="reg-password">Senha</label>
+                    <input type="password" id="reg-password" placeholder="Mínimo 6 caracteres" required minlength="6" autocomplete="new-password"/>
+                </div>
+                <div class="form-group">
+                    <label for="reg-password2">Confirmar Senha</label>
+                    <input type="password" id="reg-password2" placeholder="Repita a senha" required minlength="6" autocomplete="new-password"/>
+                </div>
+                <button type="submit" class="btn-submit" id="btn-register">Criar Conta</button>
+            </form>
+        </div>
+
+        <!-- LOADING -->
+        <div class="loading-spinner" id="spinner"></div>
+
+        <!-- MESSAGES -->
+        <div class="message" id="message"></div>
+
+        <!-- FIREBASE BADGE -->
+        <div class="firebase-badge">
+            🔥 Autenticação e dados salvos na nuvem via Firebase
+        </div>
+    </div>
+
+    <!-- FIREBASE SDK (via CDN) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+
+    <script>
+        // ============================================================
+        // CONFIGURAÇÃO DO FIREBASE (injetada pelo servidor)
+        // ============================================================
+        const firebaseConfig = {{ firebase_config | safe }};
+
+        // Inicializar Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+
+        // ============================================================
+        // FUNÇÕES DE UI
+        // ============================================================
+        function showTab(tab) {
+            document.getElementById('tab-login').classList.remove('active');
+            document.getElementById('tab-register').classList.remove('active');
+            document.getElementById('btn-tab-login').classList.remove('active');
+            document.getElementById('btn-tab-register').classList.remove('active');
+
+            document.getElementById('tab-' + tab).classList.add('active');
+            document.getElementById('btn-tab-' + tab).classList.add('active');
+
+            hideMessage();
+        }
+
+        function showMessage(text, type) {
+            const msg = document.getElementById('message');
+            msg.textContent = text;
+            msg.className = 'message ' + type;
+        }
+
+        function hideMessage() {
+            const msg = document.getElementById('message');
+            msg.className = 'message';
+            msg.textContent = '';
+        }
+
+        function showSpinner() {
+            document.getElementById('spinner').style.display = 'block';
+        }
+
+        function hideSpinner() {
+            document.getElementById('spinner').style.display = 'none';
+        }
+
+        function setButtonsDisabled(disabled) {
+            document.getElementById('btn-login').disabled = disabled;
+            document.getElementById('btn-register').disabled = disabled;
+        }
+
+        // ============================================================
+        // LOGIN
+        // ============================================================
+        async function handleLogin(event) {
+            event.preventDefault();
+            hideMessage();
+            showSpinner();
+            setButtonsDisabled(true);
+
+            const email = document.getElementById('login-email').value.trim();
+            const password = document.getElementById('login-password').value;
+            const gameVersion = document.getElementById('login-gameversion').value;
+
+            try {
+                // 1. Autenticar com Firebase Auth (client-side)
+                const userCredential = await auth.signInWithEmailAndPassword(email, password);
+                const user = userCredential.user;
+
+                // 2. Obter o ID Token
+                const idToken = await user.getIdToken();
+
+                // 3. Enviar token para o servidor para verificação e criar sessão
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id_token: idToken,
+                        game_version: gameVersion
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showMessage('Login bem-sucedido! Redirecionando...', 'success');
+                    setTimeout(() => {
+                        window.location.href = data.redirect;
+                    }, 500);
+                } else {
+                    showMessage(data.error || 'Erro ao fazer login.', 'error');
+                    hideSpinner();
+                    setButtonsDisabled(false);
+                }
+
+            } catch (error) {
+                console.error('Login error:', error);
+                let errorMsg = 'Erro ao fazer login.';
+
+                switch (error.code) {
+                    case 'auth/user-not-found':
+                        errorMsg = 'Usuário não encontrado. Crie uma conta primeiro.';
+                        break;
+                    case 'auth/wrong-password':
+                        errorMsg = 'Senha incorreta.';
+                        break;
+                    case 'auth/invalid-email':
+                        errorMsg = 'Email inválido.';
+                        break;
+                    case 'auth/too-many-requests':
+                        errorMsg = 'Muitas tentativas. Tente novamente mais tarde.';
+                        break;
+                    case 'auth/invalid-credential':
+                        errorMsg = 'Email ou senha incorretos.';
+                        break;
+                    case 'auth/network-request-failed':
+                        errorMsg = 'Erro de conexão. Verifique sua internet.';
+                        break;
+                    default:
+                        errorMsg = error.message || 'Erro desconhecido.';
+                }
+
+                showMessage(errorMsg, 'error');
+                hideSpinner();
+                setButtonsDisabled(false);
+            }
+        }
+
+        // ============================================================
+        // REGISTRO
+        // ============================================================
+        async function handleRegister(event) {
+            event.preventDefault();
+            hideMessage();
+
+            const name = document.getElementById('reg-name').value.trim();
+            const email = document.getElementById('reg-email').value.trim();
+            const password = document.getElementById('reg-password').value;
+            const password2 = document.getElementById('reg-password2').value;
+
+            // Validações
+            if (!name) {
+                showMessage('Digite o nome do seu império.', 'error');
+                return;
+            }
+            if (password !== password2) {
+                showMessage('As senhas não coincidem.', 'error');
+                return;
+            }
+            if (password.length < 6) {
+                showMessage('A senha deve ter pelo menos 6 caracteres.', 'error');
+                return;
+            }
+
+            showSpinner();
+            setButtonsDisabled(true);
+
+            try {
+                // 1. Registrar no servidor (que cria no Firebase Auth + Firestore)
+                const regResponse = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: email,
+                        password: password,
+                        display_name: name
+                    })
+                });
+
+                const regData = await regResponse.json();
+
+                if (!regData.success) {
+                    showMessage(regData.error || 'Erro ao criar conta.', 'error');
+                    hideSpinner();
+                    setButtonsDisabled(false);
+                    return;
+                }
+
+                // 2. Fazer login automaticamente após registro
+                const userCredential = await auth.signInWithEmailAndPassword(email, password);
+                const user = userCredential.user;
+                const idToken = await user.getIdToken();
+
+                // 3. Criar sessão no servidor
+                const loginResponse = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id_token: idToken,
+                        game_version: 'Basesec_1.5.4.swf'
+                    })
+                });
+
+                const loginData = await loginResponse.json();
+
+                if (loginData.success) {
+                    showMessage('Conta criada com sucesso! Entrando no jogo...', 'success');
+                    setTimeout(() => {
+                        window.location.href = loginData.redirect;
+                    }, 1000);
+                } else {
+                    showMessage('Conta criada! Faça login para jogar.', 'success');
+                    hideSpinner();
+                    setButtonsDisabled(false);
+                    setTimeout(() => showTab('login'), 2000);
+                }
+
+            } catch (error) {
+                console.error('Register error:', error);
+                let errorMsg = 'Erro ao criar conta.';
+
+                switch (error.code) {
+                    case 'auth/email-already-in-use':
+                        errorMsg = 'Este email já está cadastrado.';
+                        break;
+                    case 'auth/invalid-email':
+                        errorMsg = 'Email inválido.';
+                        break;
+                    case 'auth/weak-password':
+                        errorMsg = 'Senha muito fraca. Use pelo menos 6 caracteres.';
+                        break;
+                    default:
+                        errorMsg = error.message || 'Erro desconhecido.';
+                }
+
+                showMessage(errorMsg, 'error');
+                hideSpinner();
+                setButtonsDisabled(false);
+            }
+        }
+    </script>
+</body>
+</html>
