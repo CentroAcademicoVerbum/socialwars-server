@@ -243,8 +243,10 @@
   // CONFIGURAÇÃO DO FIREBASE (injetada pelo servidor)
   // ============================================================
   const firebaseConfig = {{ firebase_config | tojson }};
-
-  let auth = null;
+  if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+  }
+  const auth = firebase.auth();
 
   try {
     if (!firebaseConfig || !firebaseConfig.apiKey) {

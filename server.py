@@ -94,19 +94,21 @@ __DYNAMIC_ROOT = "/dynamic/menvswomen/srvsexwars"
 
 ## PAGES AND RESOURCES
 
-@app.route("/", methods=['GET', 'POST'])
+@app.route("/", methods=["GET", "POST", "HEAD"])
 def login():
+    # Render faz HEAD / pra healthcheck
+    if request.method == "HEAD":
+        return ("", 200)
+
     # Log out previous session
     session.pop('USERID', default=None)
     session.pop('GAMEVERSION', default=None)
     session.pop('FIREBASE_UID', default=None)
 
     if is_firebase_enabled():
-        # === MODO FIREBASE ===
         load_saves()
 
         if request.method == 'POST':
-            # Login via Firebase Token (enviado pelo JavaScript do frontend)
             id_token = request.form.get('id_token')
             if id_token:
                 result = verify_firebase_token(id_token)
@@ -114,33 +116,28 @@ def login():
                     session['USERID'] = result["userid"]
                     session['GAMEVERSION'] = request.form.get('GAMEVERSION', 'Basesec_1.5.4.swf')
                     session['FIREBASE_UID'] = result["uid"]
-                    app.logger.info(f"[LOGIN-FIREBASE] UID: {result['uid']}, USERID: {result['userid']}")
                     return jsonify({"success": True, "redirect": "/play-ruffle.html"})
-                else:
-                    return jsonify({"success": False, "error": result["error"]}), 401
-            else:
-                return jsonify({"success": False, "error": "Token não fornecido."}), 400
+                return jsonify({"success": False, "error": result["error"]}), 401
 
-        if request.method == 'GET':
-            return render_template(
-    "login_firebase.html",
-    version=version_name,
-    firebase_config=get_web_config(),
-  # ✅ manda dict pro template
-    firebase_enabled=True
-)
-    else:
-        # === MODO LOCAL (original) ===
-        load_saves()
-        if request.method == 'POST':
-            session['USERID'] = request.form['USERID']
-            session['GAMEVERSION'] = request.form['GAMEVERSION']
-            app.logger.info(f"[LOGIN] USERID: {request.form['USERID']}")
-            app.logger.info(f"[LOGIN] GAMEVERSION: {request.form['GAMEVERSION']}")
-            return redirect("/play-ruffle.html")
-        if request.method == 'GET':
-            saves_info = all_saves_info()
-            return render_template("login.html", saves_info=saves_info, version=version_name)
+            return jsonify({"success": False, "error": "Token não fornecido."}), 400
+
+        # GET
+        return render_template(
+            "login_firebase.html",
+            version=version_name,
+            firebase_config=get_web_config_dict(),  # <- IMPORTANTE (objeto, não string)
+            firebase_enabled=True
+        )
+
+    # === MODO LOCAL ===
+    load_saves()
+    if request.method == 'POST':
+        session['USERID'] = request.form['USERID']
+        session['GAMEVERSION'] = request.form['GAMEVERSION']
+        return redirect("/play-ruffle.html")
+
+    saves_info = all_saves_info()
+    return render_template("login.html", saves_info=saves_info, version=version_name)
 
 
 # === ROTAS DE API PARA FIREBASE ===
