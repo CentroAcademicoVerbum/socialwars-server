@@ -242,33 +242,32 @@
   // ============================================================
   // CONFIGURAÇÃO DO FIREBASE (injetada pelo servidor)
   // ============================================================
+    // Pega config do servidor (objeto JS)
   const firebaseConfig = {{ firebase_config | tojson }};
-  if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
-  }
-  const auth = firebase.auth();
+
+  let auth = null;
 
   try {
     if (!firebaseConfig || !firebaseConfig.apiKey) {
       throw new Error("Config do Firebase ausente ou sem apiKey.");
     }
 
+    // evita inicializar 2x
     if (!firebase.apps.length) {
       firebase.initializeApp(firebaseConfig);
     }
 
     auth = firebase.auth();
     console.log("[Firebase] Inicializado OK");
+
   } catch (err) {
     console.error("[Firebase] Falha ao inicializar:", err);
-
     const msg = document.getElementById("message");
     if (msg) {
       msg.textContent = "Firebase não iniciou (config inválida). Verifique as ENV do Render.";
       msg.className = "message error";
     }
   }
-
 
   // ============================================================
   // FUNÇÕES DE UI
@@ -317,9 +316,10 @@
     event.preventDefault();
 
     if (!auth) {
-      showMessage("Firebase não iniciou. Confira as ENV do Render (API Key etc).", "error");
-      return;
-    }
+  showMessage("Firebase não iniciou. Confere as ENV do Render (API Key etc).", "error");
+  return;
+}
+
 
     hideMessage();
     showSpinner();
