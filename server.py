@@ -416,4 +416,3 @@ if __name__ == "__main__":
         app.logger.addHandler(handler)
         app.logger.setLevel(logging.INFO)
         app.logger.propagate = False
-        app.run(host=host, port=port, debug=False)
