@@ -8,7 +8,11 @@ from firebase_admin import credentials, firestore, auth
 # ============================================================
 
 # 1) Preferência: credenciais vindo do Render (ENV) como JSON inteiro
-FIREBASE_CREDENTIALS_JSON = os.environ.get("FIREBASE_CREDENTIALS_JSON", "").strip()
+FIREBASE_CREDENTIALS_JSON = (
+    os.environ.get("FIREBASE_CREDENTIALS_JSON")
+    or os.environ.get("FIREBASE_CREDENTIALS")
+    or ""
+).strip()
 
 # 2) Fallback: caminho do arquivo local (dev)
 FIREBASE_CREDENTIALS_PATH = os.environ.get(

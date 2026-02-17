@@ -122,10 +122,12 @@ def login():
                 return jsonify({"success": False, "error": "Token não fornecido."}), 400
 
         if request.method == 'GET':
-            return render_template("login_firebase.html",
-                                   version=version_name,
-                                   firebase_config=get_web_config(),
-                                   firebase_enabled=True)
+            return render_template(
+    "login_firebase.html",
+    version=version_name,
+    firebase_config=get_web_config_dict(),  # ✅ manda dict pro template
+    firebase_enabled=True
+)
     else:
         # === MODO LOCAL (original) ===
         load_saves()
@@ -406,6 +408,7 @@ print(" [+] Running server...")
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5055)))
+
 
 
     import logging
